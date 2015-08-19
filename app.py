@@ -3,7 +3,7 @@ import json
 from flask import Flask, request, redirect, url_for, render_template
 from werkzeug import secure_filename
 
-UPLOAD_FOLDER = "uploads"
+UPLOAD_FOLDER = "uploaded"
 ALLOWED_EXTENSIONS = set(['json'])
 
 app = Flask(__name__)
