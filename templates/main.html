@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<head>
+	<meta charset="utf-8">
+	<!-- load library -->
+	<script src="{{ url_for('static', filename='javascript/library/d3.v3.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='javascript/library/jquery-1.11.3.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='javascript/library/bootstrap.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='javascript/library/bootstrap-filestyle.min.js') }}"></script>
+
+	<link rel="stylesheet" href="{{ url_for('static', filename='stylesheet/library/bootstrap.min.css') }}"></link>
+	<link rel="stylesheet" href="{{ url_for('static', filename='stylesheet/library/bootstrap-theme.min.css') }}"></link>
+
+	<!-- custom -->
+	<script src="{{ url_for('static', filename='javascript/clouds.js') }}"></script>
+	<link rel="stylesheet" href="{{ url_for('static', filename='stylesheet/style.css') }}"></link>
+</head>
+<body>
+	<!-- navbar -->
+	<div class="navbar navbar-default">
+		<div class="container">
+			<a class="navbar-brand" href="#">CloudsLive</a>
+			<form id="upload-file" class="navbar-form navbar-right" method="post" enctype="multipart/form-data">
+				<input class="filestyle" data-icon="false" data-size="sm" data-buttonBefore="true" type=file name=file>
+			</form>
+		</div>
+	</div>
+
+	<!-- container -->
+	<div class="container">
+		<div class="col-md-6">
+			<div id="video">
+			</div>
+		</div>
+		<div class="col-md-6">
+				<div id="clouds">
+				</div>
+				<div id="chats">
+				</div>
+		</div>
+		</div>
+	</div>
+</body>
