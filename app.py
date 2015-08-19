@@ -33,12 +33,12 @@ def upload():
         if fp and allowed_file(fp.filename):
             filename = secure_filename(fp.filename)
             fp.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
-            with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'r') as fp:
+            with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'rb') as fp:
                 chats = json.loads(fp.readline())
                 msgs = []
                 for chat in chats:
                     msgs.append(chat['msg'])
-            return msgs
+            return json.dumps(msgs)
     return None
 
 if __name__ == "__main__":
