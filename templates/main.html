@@ -7,6 +7,8 @@
 	<script src="{{ url_for('static', filename='javascript/library/bootstrap.min.js') }}"></script>
 	<script src="{{ url_for('static', filename='javascript/library/bootstrap-filestyle.min.js') }}"></script>
 
+	<script src="{{ url_for('static', filename='javascript/prototypes.js') }}"></script>
+
 	<link rel="stylesheet" href="{{ url_for('static', filename='stylesheet/library/bootstrap.min.css') }}"></link>
 	<link rel="stylesheet" href="{{ url_for('static', filename='stylesheet/library/bootstrap-theme.min.css') }}"></link>
 
@@ -26,17 +28,18 @@
 	</div>
 
 	<!-- container -->
-	<div class="container">
-		<div class="col-md-6">
+	<div class="container-fluid">
+		<div class="col-md-9">
 			<div id="video">
 			</div>
+			<div id="histogram">
+			</div>
 		</div>
-		<div class="col-md-6">
-				<div id="clouds">
-				</div>
-				<div id="chats">
-				</div>
-		</div>
+		<div id="tabs" class="col-md-3">
+			<div id="chats">
+			</div>
+			<div id="clouds">
+			</div>
 		</div>
 	</div>
 </body>

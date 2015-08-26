@@ -14,11 +14,6 @@ def allowed_file(filename):
 
 @app.route("/")
 def index():
-    if "filename" in request.args.keys():
-        filename = request.args["filename"]
-    else:
-        filename = "File Not Uploaded"
-
     return render_template("main.html")
 
 @app.route("/upload", methods=["POST"])
@@ -35,10 +30,10 @@ def upload():
             fp.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
             with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'rb') as fp:
                 chats = json.loads(fp.readline())
-                msgs = []
-                for chat in chats:
-                    msgs.append(chat['msg'])
-            return json.dumps(msgs)
+            reftime = chats[0]["ts"]
+            for i, chat in enumerate(chats):
+                chats[i]["ts"] -= reftime
+            return json.dumps(chats)
     return None
 
 if __name__ == "__main__":
