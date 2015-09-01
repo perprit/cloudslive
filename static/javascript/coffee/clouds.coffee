@@ -1,5 +1,7 @@
 class Main
+	@reftime = 0
 	constructor: ->
+		# file uploader
 		$("#upload-file > input:file").change(() =>
 			overlay = $("<div class='overlay'> </div>")
 			spinner = $("<div class='spinner'> </div>")
@@ -18,6 +20,9 @@ class Main
 				async: true,
 				success: (response) =>
 					parsed = JSON.parse(response)
+					@reftime = +parsed[0].ts
+					for d, i in parsed
+						parsed[i].ts -= @reftime
 					@initialize(parsed)
 				error: (jqXHR, textStatus, errorThrown) ->
 					alert("#{textStatus} ,  #{errorThrown}")
@@ -28,12 +33,14 @@ class Main
 			)
 		)
 
-	initialize: (data) ->
-		chats = new Chats(data)
-		histogram = new Histogram(data)
+		$("#chats").perfectScrollbar()
 
-class Chats
-	constructor: (data) ->
+
+	initialize: (data) ->
+		@initializeChats(data)
+		@initializeHistogram(data)
+
+	initializeChats: (data) ->
 		chats = d3.select("#chats")
 		chat = chats.selectAll(".chat")
 			.data(data)
@@ -44,6 +51,10 @@ class Chats
 			#.each((d) ->
 				#d.top = $(this).position().top
 			#)
+		
+		chat.append("span")
+			.attr("class", "time")
+			.text((d) => return new Date(@reftime + d.ts).hhmmss())
 
 		chat.append("span")
 			.attr("class", "id")
@@ -68,10 +79,10 @@ class Chats
 				#console.log($(this).position().top, $(this))
 				#$(this.parentNode).scrollTop(d.top)
 			#)
-		
-class Histogram
-	constructor: (data) ->
-		margin = {top: 20, right: 20, bottom: 30, left: 50}
+
+
+	initializeHistogram: (data) ->
+		margin = {top: 20, right: 0, bottom: 0, left: 0}
 		width = parseInt(d3.select("#histogram").style("width"), 10) - margin.left - margin.right
 		height = parseInt(d3.select("#histogram").style("height"), 10) - margin.top - margin.bottom
 
@@ -82,9 +93,8 @@ class Histogram
 			.attr("height", height + margin.top + margin.bottom)
 
 		hist = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-		histBars = hist.append("g")
 
-		binSize = 3000
+		binSize = 10000		# 10 seconds
 		tsList = data.map((d) -> return +d.ts )
 		countList = []
 
@@ -105,18 +115,33 @@ class Histogram
 			.domain([0, d3.max(countList, (d) -> return +d )])
 			.range([height, 0])
 
-		binWidth = Math.floor(width/countList.length)
-		console.log(width, countList.length)
-		console.log(binWidth)
-		console.log(countList)
+		binWidth = Math.ceil(width/countList.length)
 
-		histBars.selectAll(".bar")
+		bars = hist.selectAll(".bar")
 			.data(countList)
 			.enter()
 			.append("rect")
 			.attr("class", "bar")
+			.style("fill", "steelblue")
 			.attr("width", binWidth)
 			.attr("height", (d) => return height - y(d) )
 			.attr("transform", (d, i) => return "translate(" + x(i) + "," + y(d)+")")
 
-$ -> window.main = new Main
+
+		bars.on("mouseover", () ->
+			d3.select(this).style("fill", "red")
+		)
+		bars.on("mouseout", () ->
+			d3.select(this).style("fill", "steelblue")
+		)
+
+$ ->
+	window.main = new Main
+
+	$("#behind-scroll").css("height", $("#chats").css("height"))
+	$(window).resize(() ->
+		$("#behind-scroll").css("height", $("#chats").css("height"))
+	)
+	$("#chats").scroll(() ->
+		$("#behind-scroll").css("top", $(this).scrollTop())
+	)

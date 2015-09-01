@@ -6,11 +6,14 @@
 	<script src="{{ url_for('static', filename='javascript/library/jquery-1.11.3.min.js') }}"></script>
 	<script src="{{ url_for('static', filename='javascript/library/bootstrap.min.js') }}"></script>
 	<script src="{{ url_for('static', filename='javascript/library/bootstrap-filestyle.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='javascript/library/perfect-scrollbar.min.js') }}"></script>
+	<script src="{{ url_for('static', filename='javascript/library/perfect-scrollbar.jquery.min.js') }}"></script>
 
 	<script src="{{ url_for('static', filename='javascript/prototypes.js') }}"></script>
 
 	<link rel="stylesheet" href="{{ url_for('static', filename='stylesheet/library/bootstrap.min.css') }}"></link>
 	<link rel="stylesheet" href="{{ url_for('static', filename='stylesheet/library/bootstrap-theme.min.css') }}"></link>
+	<link rel="stylesheet" href="{{ url_for('static', filename='stylesheet/library/perfect-scrollbar.min.css') }}"></link>
 
 	<!-- custom -->
 	<script src="{{ url_for('static', filename='javascript/clouds.js') }}"></script>
@@ -37,6 +40,8 @@
 		</div>
 		<div id="tabs" class="col-md-3">
 			<div id="chats">
+				<div id="behind-scroll">
+				</div>
 			</div>
 			<div id="clouds">
 			</div>

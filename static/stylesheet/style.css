@@ -31,6 +31,10 @@ body {
 	z-index: 11;    /* 1 more than z-index of overlay */
 }
 
+#chatting {
+
+}
+
 #chats {
 	position: relative;
 	background-color: #f2f2f2;
@@ -40,11 +44,26 @@ body {
 	height: 83vh;
 }
 
+#behind-scroll {
+	position: absolute;
+	background-color: steelblue;
+	overflow-y: hidden;
+	width: 8px;
+	right: 3px;
+	top: 0px;
+}
+
 .chat {
 	line-height: 20px;
 	padding: 6px 20px;
 	margin: -3px 0px;
 	word-wrap: break-word;
+}
+
+.chat .time {
+	font-weight: 600;
+	font-size: 0.8em;
+	margin-right: 3px;
 }
 
 .chat .id {
@@ -60,16 +79,16 @@ body {
 
 #video {
 	position: relative;
-	margin-top: 10px;
-	margin-left: auto;
-	margin-right: auto;
-	width: 106.5vh;
-	height: 60vh;
+	margin: 10px auto 30px auto;
+	width: 88.5vh;
+	height: 50vh;
 	border: 1px solid black;
 }
 
 #histogram {
 	margin-left: 40px;
 	margin-right: 40px;
-	height: 27vh;
+	height: 23vh;
+	background-color: #eaeaea;
 }
+
