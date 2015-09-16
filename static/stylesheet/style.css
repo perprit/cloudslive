@@ -31,26 +31,25 @@ body {
 	z-index: 11;    /* 1 more than z-index of overlay */
 }
 
-#chatting {
-
-}
-
-#chats {
+#chats-container {
 	position: relative;
 	background-color: #f2f2f2;
 	padding: 6px;
 	overflow: hidden;
 	overflow-y: scroll;
-	height: 83vh;
+	width: 440px;
+	height: 87vh;
+  margin-right: 20px;
 }
 
-#behind-scroll {
-	position: absolute;
-	background-color: steelblue;
+#histogram {
+	position: relative;
+	background-color: #f2f2f2;
+	overflow: hidden;
 	overflow-y: hidden;
-	width: 8px;
-	right: 3px;
-	top: 0px;
+	width: 440px;
+	height: 87vh;
+  margin-right: 20px;
 }
 
 .chat {
@@ -77,18 +76,25 @@ body {
 .chat .msg {
 }
 
-#video {
+#clouds {
 	position: relative;
-	margin: 10px auto 30px auto;
+	margin: 50px auto 50px auto;
 	width: 88.5vh;
 	height: 50vh;
-	border: 1px solid black;
+	border: 1px solid #f2f2f2;
+  border-radius: 5px;
 }
 
-#histogram {
-	margin-left: 40px;
-	margin-right: 40px;
-	height: 23vh;
-	background-color: #eaeaea;
+
+.axis path,
+.axis line {
+	display: none;
+	fill: none;
+	stroke: black;
+	shape-rendering: crispEdges;
 }
 
+.axis text {
+	font-family: sans-serif;
+	font-size: 11px;
+}
