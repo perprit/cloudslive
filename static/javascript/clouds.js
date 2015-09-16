@@ -7,7 +7,7 @@
     function Main() {
       var _this = this;
       this.reftime = 0;
-      this.speed = 10;
+      this.speed = 100;
       this.timeBin = 30000;
       this.freqMax = 80;
       $("#upload-file > input:file").change(function() {
@@ -105,8 +105,8 @@
       width = parseInt(d3.select("#histogram").style("width"), 10) - margin.left - margin.right;
       console.log(width);
       height = parseInt(d3.select("#histogram").style("height"), 10) - margin.top - margin.bottom;
-      svg = d3.select("#histogram").append("svg").attr("width", width).attr("height", height);
-      hist = svg.append("g").attr("transform", "translate(0, 0)");
+      svg = d3.select("#histogram").append("svg").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom);
+      hist = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
       x = d3.scale.linear().domain([0, this.freqMax]).range([0, width]);
       y = d3.scale.linear().domain([chats[0].ts, chats[chats.length - 1].ts]).range([0, height]);
       svg.append("g").attr("class", "axis").attr("transform", "translate(" + (width + margin.left) + "," + margin.top + ")");

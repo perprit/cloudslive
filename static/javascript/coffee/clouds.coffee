@@ -2,7 +2,7 @@ class Main
 	constructor: ->
 		@reftime = 0
 
-		@speed = 10
+		@speed = 100
 		@timeBin = 30000
 		@freqMax = 80
 
@@ -93,11 +93,10 @@ class Main
 		height = parseInt(d3.select("#histogram").style("height"), 10) - margin.top - margin.bottom
 
 		svg = d3.select("#histogram").append("svg")
-			.attr("width", width)
-			.attr("height", height)
+			.attr("width", width + margin.left + margin.right)
+			.attr("height", height + margin.top + margin.bottom)
 
-		#hist = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")")
-		hist = svg.append("g").attr("transform", "translate(0, 0)")
+		hist = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
 		x = d3.scale.linear()
 			.domain([0, @freqMax])
