@@ -7,7 +7,7 @@
     function Main() {
       var _this = this;
       this.reftime = 0;
-      this.speed = 100;
+      this.speed = 5;
       this.timeBin = 30000;
       this.freqMax = 80;
       $("#upload-file > input:file").change(function() {
@@ -103,7 +103,6 @@
         left: 30
       };
       width = parseInt(d3.select("#histogram").style("width"), 10) - margin.left - margin.right;
-      console.log(width);
       height = parseInt(d3.select("#histogram").style("height"), 10) - margin.top - margin.bottom;
       svg = d3.select("#histogram").append("svg").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom);
       hist = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
@@ -150,15 +149,21 @@
           return d3.select(this).style("fill", "rgb(90, 150, 200)");
         }).on("mouseout", function() {
           return d3.select(this).style("fill", "rgb(70, 130, 180)");
+        }).each(function(d) {
+          d.x = (width - x(d.v)) / 2;
+          return d.y = binHeight * currChatList.length;
         });
         return bars.data(currChatList).attr("height", function(d) {
-          return binHeight;
+          return binHeight + 1;
         }).attr("transform", function(d, i) {
-          return "translate(" + (width - x(d.v)) / 2 + "," + binHeight * i + ")";
-        }).transition().duration(300).ease("elastic").attr("width", function(d) {
+          return "translate(" + d.x + "," + d.y + ")";
+        }).transition().duration(700).ease("elastic").attr("width", function(d) {
           return x(d.v);
         }).attr("transform", function(d, i) {
           return "translate(" + (width - x(d.v)) / 2 + "," + binHeight * i + ")";
+        }).each(function(d, i) {
+          d.x = (width - x(d.v)) / 2;
+          return d.y = binHeight * i;
         });
       };
       setTimeoutToChat = function(chat) {

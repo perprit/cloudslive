@@ -2,7 +2,7 @@ class Main
 	constructor: ->
 		@reftime = 0
 
-		@speed = 100
+		@speed = 5
 		@timeBin = 30000
 		@freqMax = 80
 
@@ -89,7 +89,6 @@ class Main
 		# static properties
 		margin = {top: 0, right: 30, bottom: 0, left: 30}
 		width = parseInt(d3.select("#histogram").style("width"), 10) - margin.left - margin.right
-		console.log(width)
 		height = parseInt(d3.select("#histogram").style("height"), 10) - margin.top - margin.bottom
 
 		svg = d3.select("#histogram").append("svg")
@@ -158,15 +157,23 @@ class Main
 				.on("mouseout", () ->
 					d3.select(this).style("fill", "rgb(70, 130, 180)")
 				)
+				.each((d) =>
+					d.x = (width-x(d.v))/2
+					d.y = binHeight*currChatList.length
+				)
 
 			bars.data(currChatList)
-				.attr("height", (d) => return binHeight )
-				.attr("transform", (d, i) => return "translate(" + (width-x(d.v))/2 + "," + binHeight*i+")")
+				.attr("height", (d) => return binHeight+1 )
+				.attr("transform", (d, i) => return "translate(" + d.x + "," + d.y + ")")
 				.transition()
-				.duration(300)
+				.duration(700)
 				.ease("elastic")
 				.attr("width", (d) => return x(d.v))
 				.attr("transform", (d, i) => return "translate(" + (width-x(d.v))/2 + "," + binHeight*i+")")
+				.each((d, i) =>
+					d.x = (width-x(d.v))/2
+					d.y = binHeight*i
+				)
 
 		setTimeoutToChat = (chat) =>
 			setTimeout(() =>
