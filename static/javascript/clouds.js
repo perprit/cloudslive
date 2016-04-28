@@ -44,12 +44,13 @@
           });
         };
       })(this));
-      $("#chats-container").perfectScrollbar();
     }
 
     Main.prototype.initialize = function(chats) {
       this.initializeChats(chats);
-      return this.initializeHistogram(chats);
+      this.initializeClouds(chats);
+      $("#chats-container").perfectScrollbar();
+      return $("#clouds-container").perfectScrollbar();
     };
 
     Main.prototype.initializeChats = function(chats) {
@@ -95,84 +96,89 @@
       return results;
     };
 
-    Main.prototype.initializeHistogram = function(chats) {
-      var addChat, chat, currChatList, height, hist, j, len, margin, prevIdx, results, setTimeoutToChat, svg, width, x, y;
+    Main.prototype.initializeClouds = function(chats) {
+      var addChat, addWord, chat, cloud, g, height, j, len, margin, parser, refreshClouds, results, setTimeoutToChat, svg, width, words;
       margin = {
-        top: 0,
+        top: 30,
         right: 30,
-        bottom: 0,
+        bottom: 30,
         left: 30
       };
-      width = parseInt(d3.select("#histogram").style("width"), 10) - margin.left - margin.right;
-      height = parseInt(d3.select("#histogram").style("height"), 10) - margin.top - margin.bottom;
-      svg = d3.select("#histogram").append("svg").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom);
-      hist = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-      x = d3.scale.linear().domain([0, this.freqMax]).range([0, width]);
-      y = d3.scale.linear().domain([chats[0].ts, chats[chats.length - 1].ts]).range([0, height]);
-      svg.append("g").attr("class", "axis").attr("transform", "translate(" + (width + margin.left) + "," + margin.top + ")");
-      currChatList = [];
-      prevIdx = 0;
+      width = parseInt(d3.select("#clouds-container").style("width"), 10) - margin.left - margin.right;
+      height = parseInt(d3.select("#clouds-container").style("height"), 10) - margin.top - margin.bottom;
+      svg = d3.select("#clouds-container").append("svg").attr("id", "clouds").attr("width", width + margin.left + margin.right).attr("height", height + margin.top + margin.bottom);
+      g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+      words = [];
+      cloud = g.selectAll(".cloud").data(words, function(d) {
+        return d["word"];
+      });
+      parser = new DOMParser();
+      addWord = (function(_this) {
+        return function(word, ts) {
+          var found;
+          found = words.find(function(e, i, a) {
+            return e["word"] === word;
+          });
+          if (typeof found === "undefined") {
+            return words.push({
+              "word": word,
+              "ts": [ts]
+            });
+          } else {
+            return words[words.map(function(d) {
+              return d["word"];
+            }).indexOf(word)]["ts"].push(ts);
+          }
+        };
+      })(this);
+      refreshClouds = (function(_this) {
+        return function() {
+          var bbox;
+          cloud = g.selectAll(".cloud").data(words, function(d) {
+            return d["word"];
+          });
+          cloud.enter().append("text").attr("class", "cloud").attr("y", function(d) {
+            return d["ts"][0] / 10;
+          }).text(function(d) {
+            return d["word"];
+          });
+          cloud.style("font-size", function(d) {
+            return 10 + d["ts"].length * 3;
+          });
+          cloud.data(words, function(d) {
+            return d["word"];
+          }).exit().remove();
+          bbox = d3.select("#clouds")[0][0].getBBox();
+          return svg.attr("height", bbox.y + bbox.height);
+        };
+      })(this);
       addChat = (function(_this) {
         return function(chat) {
-          var _idx, bars, binHeight, idx, j, ref, ref1;
-          idx = Math.ceil(chat.ts / _this.timeBin);
-          if (idx - prevIdx > 1) {
-            for (_idx = j = ref = prevIdx + 1, ref1 = idx; ref <= ref1 ? j <= ref1 : j >= ref1; _idx = ref <= ref1 ? ++j : --j) {
-              currChatList[_idx] = {
-                v: 0,
-                idxtime: _this.timeBin * idx,
-                msgList: []
-              };
+          var e, j, k, len, len1, parsed, ref, ref1, w;
+          parsed = parser.parseFromString(chat.msg, "text/html");
+          ref = parsed.body.childNodes;
+          for (j = 0, len = ref.length; j < len; j++) {
+            e = ref[j];
+            if (e.nodeName === "IMG") {
+              addWord("(" + e.title + ")", chat.ts);
+            } else if (e.nodeName === "#text") {
+              ref1 = e.nodeValue.split(" ");
+              for (k = 0, len1 = ref1.length; k < len1; k++) {
+                w = ref1[k];
+                addWord(w, chat.ts);
+              }
             }
           }
-          if (currChatList[idx] === void 0) {
-            currChatList[idx] = {
-              v: 1,
-              idxtime: _this.timeBin * idx,
-              msgList: [chat.msg]
-            };
-          } else {
-            currChatList[idx].v++;
-            currChatList[idx].msgList.push(chat.msg);
-            if (currChatList[idx].v > _this.freqMax) {
-              x = d3.scale.linear().domain([
-                0, d3.max(currChatList, function(d) {
-                  return +d.v;
-                })
-              ]).range([0, width]);
-            }
-          }
-          prevIdx = idx;
-          binHeight = height / currChatList.length;
-          y.domain([currChatList[0].idxtime, currChatList[currChatList.length - 1].idxtime]);
-          bars = hist.selectAll(".bar");
-          bars.data(currChatList).exit().remove();
-          bars.data(currChatList).enter().append("rect").attr("class", "bar").style("fill", "steelblue").on("mouseover", function() {
-            return d3.select(this).style("fill", "rgb(90, 150, 200)");
-          }).on("mouseout", function() {
-            return d3.select(this).style("fill", "rgb(70, 130, 180)");
-          }).each(function(d) {
-            d.x = (width - x(d.v)) / 2;
-            return d.y = binHeight * currChatList.length;
-          });
-          return bars.data(currChatList).attr("height", function(d) {
-            return binHeight + 1;
-          }).attr("transform", function(d, i) {
-            return "translate(" + d.x + "," + d.y + ")";
-          }).transition().duration(700).ease("elastic").attr("width", function(d) {
-            return x(d.v);
-          }).attr("transform", function(d, i) {
-            return "translate(" + (width - x(d.v)) / 2 + "," + binHeight * i + ")";
-          }).each(function(d, i) {
-            d.x = (width - x(d.v)) / 2;
-            return d.y = binHeight * i;
-          });
+          return $("#clouds-container").stop().animate({
+            scrollTop: $("#clouds").height()
+          }, 100);
         };
       })(this);
       setTimeoutToChat = (function(_this) {
         return function(chat) {
           return setTimeout(function() {
-            return addChat(chat);
+            addChat(chat);
+            return refreshClouds();
           }, +chat.ts / _this.speed);
         };
       })(this);

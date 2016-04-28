@@ -29,10 +29,7 @@ def upload():
             filename = secure_filename(fp.filename)
             fp.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
             with open(os.path.join(app.config['UPLOAD_FOLDER'], filename), 'rb') as fp:
-                chats = json.loads(fp.readline())
-            #reftime = chats[0]["ts"]
-            #for i, chat in enumerate(chats):
-                #chats[i]["ts"] -= reftime
+                chats = json.loads(fp.readline().decode())
             return json.dumps(chats)
     return None
 

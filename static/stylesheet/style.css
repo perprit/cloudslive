@@ -80,29 +80,14 @@ body {
   opacity: 1 !important;
   display: inherit !important;
   position: initial !important;
-  /*width: 28px;*/
-  /*height: 28px;*/
 }
 
-#clouds {
+#clouds-container {
 	position: relative;
-	margin: 50px auto 50px auto;
-	width: 88.5vh;
-	height: 50vh;
-	border: 1px solid #f2f2f2;
-  border-radius: 5px;
-}
-
-
-.axis path,
-.axis line {
-	display: none;
-	fill: none;
-	stroke: black;
-	shape-rendering: crispEdges;
-}
-
-.axis text {
-	font-family: sans-serif;
-	font-size: 11px;
+	background-color: #f2f2f2;
+	overflow: hidden;
+	overflow-y: scroll;
+	width: 440px;
+	height: 87vh;
+	margin-top: 20px;
 }

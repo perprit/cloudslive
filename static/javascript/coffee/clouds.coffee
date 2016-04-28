@@ -38,12 +38,13 @@ class Main
       )
     )
 
-    $("#chats-container").perfectScrollbar()
 
 
   initialize: (chats) ->
     @initializeChats(chats)
-    @initializeHistogram(chats)
+    @initializeClouds(chats)
+    $("#chats-container").perfectScrollbar()
+    $("#clouds-container").perfectScrollbar()
 
   initializeChats: (chats) ->
     currChats = []
@@ -86,169 +87,149 @@ class Main
     for chat in chats
       setTimeoutToChat(chat)
 
-  initializeHistogram: (chats) ->
-    # static properties
-    margin = {top: 0, right: 30, bottom: 0, left: 30}
-    width = parseInt(d3.select("#histogram").style("width"), 10) - margin.left - margin.right
-    height = parseInt(d3.select("#histogram").style("height"), 10) - margin.top - margin.bottom
+  initializeClouds: (chats) ->
+    margin = {top: 30, right: 30, bottom: 30, left: 30}
+    width = parseInt(d3.select("#clouds-container").style("width"), 10) - margin.left - margin.right
+    height = parseInt(d3.select("#clouds-container").style("height"), 10) - margin.top - margin.bottom
 
-    svg = d3.select("#histogram").append("svg")
+    svg = d3.select("#clouds-container").append("svg")
+      .attr("id", "clouds")
       .attr("width", width + margin.left + margin.right)
       .attr("height", height + margin.top + margin.bottom)
 
-    hist = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+    g = svg.append("g")
+      .attr("transform", "translate("+margin.left+","+margin.top+")")
 
-    x = d3.scale.linear()
-      .domain([0, @freqMax])
-      .range([0, width])
-
-    y = d3.scale.linear()
-      .domain([chats[0].ts, chats[chats.length-1].ts])
-      .range([0, height])
-
-    svg.append("g")
-      .attr("class", "axis")
-      .attr("transform", "translate(" + (width + margin.left) + "," + margin.top + ")")
-
-    #yAxis = d3.svg.axis()
-      #.scale(y)
-      #.tickFormat((ts) -> return d3.time.format("%X")(new Date(ts)))
-      #.tickSize(1)
-      #.tickPadding(1)
-      #.tickValues(y.domain())
-      #.orient("left")
 
     # dynamic properties
-    currChatList = []
-    prevIdx = 0
-    addChat = (chat) =>
-      idx = Math.ceil(chat.ts/@timeBin)
-      if idx - prevIdx > 1
-        for _idx in [(prevIdx+1)..idx]
-          currChatList[_idx] = {v: 0, idxtime: @timeBin*idx, msgList: []}
-      if currChatList[idx] is undefined
-        currChatList[idx] = {v: 1, idxtime: @timeBin*idx, msgList: [chat.msg]}
+    words = []
+    cloud = g.selectAll(".cloud").data(words, (d) -> return d["word"])
+    parser = new DOMParser()
+    addWord = (word, ts) =>
+      # checks if 'words' contains 'word' already
+      found = words.find((e, i, a) -> return e["word"] is word )
+      if (typeof found is "undefined")
+        words.push({"word": word, "ts": [ts]})
       else
-        currChatList[idx].v++
-        currChatList[idx].msgList.push(chat.msg)
-        if currChatList[idx].v > @freqMax
-          x = d3.scale.linear()
-            .domain([0, d3.max(currChatList, (d) -> return +d.v )])
-            .range([0, width])
-      prevIdx = idx
+        words[words.map((d) -> return d["word"]).indexOf(word)]["ts"].push(ts)
 
-      binHeight = height/currChatList.length
+    refreshClouds = () =>
+      cloud = g.selectAll(".cloud").data(words, (d) -> return d["word"])
 
-      y.domain([currChatList[0].idxtime, currChatList[currChatList.length-1].idxtime])
+      # ENTER
+      cloud.enter()
+      .append("text")
+        .attr("class", "cloud")
+        .attr("y", (d) -> return d["ts"][0]/10)
+        .text((d) -> return d["word"])
 
-      bars = hist.selectAll(".bar")
-        
-      bars.data(currChatList)
+      # ENTER + UPDATE
+      cloud
+        .style("font-size", (d) -> return 10+d["ts"].length*3)
+
+      # EXIT
+      cloud.data(words, (d) -> return d["word"])
         .exit()
         .remove()
 
-      bars.data(currChatList)
-        .enter()
-        .append("rect")
-        .attr("class", "bar")
-        .style("fill", "steelblue")
-        .on("mouseover", () ->
-          d3.select(this).style("fill", "rgb(90, 150, 200)")
-        )
-        .on("mouseout", () ->
-          d3.select(this).style("fill", "rgb(70, 130, 180)")
-        )
-        .each((d) =>
-          d.x = (width-x(d.v))/2
-          d.y = binHeight*currChatList.length
-        )
+      # resize svg
+      bbox = d3.select("#clouds")[0][0].getBBox()
+      svg.attr("height", bbox.y + bbox.height)
 
-      bars.data(currChatList)
-        .attr("height", (d) => return binHeight+1 )
-        .attr("transform", (d, i) => return "translate(" + d.x + "," + d.y + ")")
-        .transition()
-        .duration(700)
-        .ease("elastic")
-        .attr("width", (d) => return x(d.v))
-        .attr("transform", (d, i) => return "translate(" + (width-x(d.v))/2 + "," + binHeight*i+")")
-        .each((d, i) =>
-          d.x = (width-x(d.v))/2
-          d.y = binHeight*i
-        )
+    addChat = (chat) =>
+      parsed = parser.parseFromString(chat.msg, "text/html")
+      for e in parsed.body.childNodes
+        if(e.nodeName is "IMG")
+          addWord("("+e.title+")", chat.ts)
+        else if(e.nodeName is "#text")
+          for w in e.nodeValue.split(" ")
+            addWord(w, chat.ts)
 
-    setTimeoutToChat = (chat) =>
-      setTimeout(() =>
-        addChat(chat)
-      , +chat.ts/@speed)
+      $("#clouds-container").stop().animate({scrollTop: $("#clouds").height()}, 100)
 
-    for chat in chats
-      setTimeoutToChat(chat)
-
-    #margin = {top: 0, right: 10, bottom: 0, left: 10}
-    #width = parseInt(d3.select("#histogram").style("width"), 10) - margin.left - margin.right
-    #height = parseInt(d3.select("#histogram").style("height"), 10) - margin.top - margin.bottom
-
-    #svg = d3.select("#histogram").append("svg")
-      #.attr("width", width + margin.left + margin.right)
-      #.attr("height", height + margin.top + margin.bottom)
+    
+    ##static properties
 
     #hist = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")")
 
-    ## dynamic properties
-    #timeBin = 10000    # 10 seconds
-    #freqList = []
-
-    #for chat in chats
-      #idx = Math.ceil(chat.ts/timeBin)
-      #if freqList[idx] is undefined
-        #freqList[idx] = {v: 1, ts: undefined, msgList: [chat.msg]}
-      #else
-        #freqList[idx].v++
-        #freqList[idx].msgList.push(chat.msg)
-    #for freq, i in freqList
-      #if freq is undefined
-        #freqList[i] = {v: 0, ts: @reftime + timeBin*i}
-      #else
-        #freqList[i].ts = @reftime + timeBin*i
-
     #x = d3.scale.linear()
-      #.domain([0, d3.max(freqList, (d) -> return +d.v )])
+      #.domain([0, @freqMax])
       #.range([0, width])
-    #y = d3.scale.linear()
-      #.domain([freqList[0].ts, freqList[freqList.length-1].ts])
-      #.range([0, height])
 
-    #yAxis = d3.svg.axis()
-      #.scale(y)
-      #.tickFormat((ts) -> return d3.time.format("%X")(new Date(ts)))
-      #.tickSize(1)
-      #.tickPadding(1)
-      #.tickValues(y.domain())
-      #.orient("left")
+    #y = d3.scale.linear()
+      #.domain([chats[0].ts, chats[chats.length-1].ts])
+      #.range([0, height])
 
     #svg.append("g")
       #.attr("class", "axis")
       #.attr("transform", "translate(" + (width + margin.left) + "," + margin.top + ")")
-      #.call(yAxis)
 
-    #binHeight = Math.ceil(height/freqList.length)
+     #dynamic properties
+    #currChatList = []
+    #prevIdx = 0
+    #addChat = (chat) =>
+      #idx = Math.ceil(chat.ts/@timeBin)
+      #if idx - prevIdx > 1
+        #for _idx in [(prevIdx+1)..idx]
+          #currChatList[_idx] = {v: 0, idxtime: @timeBin*idx, msgList: []}
+      #if currChatList[idx] is undefined
+        #currChatList[idx] = {v: 1, idxtime: @timeBin*idx, msgList: [chat.msg]}
+      #else
+        #currChatList[idx].v++
+        #currChatList[idx].msgList.push(chat.msg)
+        #if currChatList[idx].v > @freqMax
+          #x = d3.scale.linear()
+            #.domain([0, d3.max(currChatList, (d) -> return +d.v )])
+            #.range([0, width])
+      #prevIdx = idx
 
-    #bars = hist.selectAll(".bar")
-      #.data(freqList)
-      #.enter()
-      #.append("rect")
-      #.attr("class", "bar")
-      #.style("fill", "steelblue")
-      #.attr("width", (d) => return x(d.v))
-      #.attr("height", (d) => return binHeight )
-      #.attr("transform", (d, i) => return "translate(" + (width-x(d.v))/2 + "," + y(d.ts)+")")
+      #binHeight = height/currChatList.length
 
-    #bars.on("mouseover", () ->
-      #d3.select(this).style("fill", "rgb(90, 150, 200)")
-    #)
-    #bars.on("mouseout", () ->
-      #d3.select(this).style("fill", "rgb(70, 130, 180)")
-    #)
+      #y.domain([currChatList[0].idxtime, currChatList[currChatList.length-1].idxtime])
+
+      #bars = hist.selectAll(".bar")
+        
+      #bars.data(currChatList)
+        #.exit()
+        #.remove()
+
+      #bars.data(currChatList)
+        #.enter()
+        #.append("rect")
+        #.attr("class", "bar")
+        #.style("fill", "steelblue")
+        #.on("mouseover", () ->
+          #d3.select(this).style("fill", "rgb(90, 150, 200)")
+        #)
+        #.on("mouseout", () ->
+          #d3.select(this).style("fill", "rgb(70, 130, 180)")
+        #)
+        #.each((d) =>
+          #d.x = (width-x(d.v))/2
+          #d.y = binHeight*currChatList.length
+        #)
+
+      #bars.data(currChatList)
+        #.attr("height", (d) => return binHeight+1 )
+        #.attr("transform", (d, i) => return "translate(" + d.x + "," + d.y + ")")
+        #.transition()
+        #.duration(700)
+        #.ease("elastic")
+        #.attr("width", (d) => return x(d.v))
+        #.attr("transform", (d, i) => return "translate(" + (width-x(d.v))/2 + "," + binHeight*i+")")
+        #.each((d, i) =>
+          #d.x = (width-x(d.v))/2
+          #d.y = binHeight*i
+        #)
+
+    setTimeoutToChat = (chat) =>
+      setTimeout(() =>
+        addChat(chat)
+        refreshClouds()
+      , +chat.ts/@speed)
+
+    for chat in chats
+      setTimeoutToChat(chat)
 
 $ ->
   window.main = new Main
