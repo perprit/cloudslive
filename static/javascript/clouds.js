@@ -4,6 +4,7 @@
 
   Main = (function() {
     function Main() {
+      console.log(this);
       this.reftime = 0;
       this.speed = 1;
       this.timeBin = 20000;

@@ -24,7 +24,7 @@ def upload():
         if not os.path.exists(app.config["UPLOAD_FOLDER"]):
             os.makedirs(app.config["UPLOAD_FOLDER"])
 
-        # uploading the PCAP file
+        # uploading a chat list
         if fp and allowed_file(fp.filename):
             filename = secure_filename(fp.filename)
             fp.save(os.path.join(app.config["UPLOAD_FOLDER"], filename))
