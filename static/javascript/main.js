@@ -1,3 +1,4 @@
+"use strict";
 (function() {
   var Main;
 
@@ -31,8 +32,8 @@
               var parsed, i;
               parsed = JSON.parse(response);
               _this.reftime = +parsed[0].ts;
-              parsed.forEach(function(curr) {
-                curr.ts -= _this.reftime;
+              parsed.forEach(function(d) {
+                d.ts -= _this.reftime;
               });
               _this.initialize(parsed);
 
@@ -56,13 +57,16 @@
     // member functions
     
     Main.prototype.initialize = function (chats) {
-      this.initializeChats(chats);
-      //this.initializeClouds(chats);
+      //this.initializeChats(chats);
+      this.initializeClouds(chats);
     };
 
     Main.prototype.initializeChats = function (chats) {
+      // declarations
       var currChats, addChat, setTimeoutToChat;
       currChats = [];
+
+      // functions
       addChat = (function(_this) {
         return function(chat) {
           var msg, newChat;
@@ -113,8 +117,106 @@
         };
       })(this);
 
-      chats.forEach(function(curr) {
-        setTimeoutToChat(curr);
+      // operations
+      chats.forEach(function(d) {
+        setTimeoutToChat(d);
+      });
+    };
+
+    Main.prototype.initializeClouds = function(chats) {
+      // declarations
+      var margin, width, height, svg, g;
+      var words, cloud, parser;
+      var addWord, refreshClouds, addChat, setTimeoutToChat;
+      
+      // functions
+      addWord = (function(_this) {
+        return function(word, ts) {
+          var found;
+          found = words.find(function(d) {
+            return d.word === word;
+          });
+          if (typeof found === "undefined") {
+            words.push({"word": word, "ts": [ts]});
+          } else {
+            words[words.map(function(d) { return d.word; }).indexOf(word)]["ts"].push(ts);
+          }
+        };
+      })(this);
+
+      refreshClouds = (function(_this) {
+        return function() {
+          var cloud, bbox;
+          cloud = g.selectAll(".cloud")
+            .data(words, function(d) { return d.word; });
+
+          cloud.enter()
+            .append("text")
+            .attr("class", "cloud")
+            .attr("y", function(d) { return d.ts[0]/10; })
+            .text(function(d) { return d.word; });
+
+          cloud
+            .style("font-size", function(d) { return 10 + d.ts.length * 3; });
+
+          cloud.data(words, function(d) { return d.word; })
+            .exit()
+            .remove(); 
+
+          bbox = d3.select("#clouds")[0][0].getBBox();
+          svg.attr("height", bbox.y + bbox.height);
+          $("#clouds-container").stop().animate({scrollTop: $("#clouds").height()}, 100)
+        };
+      })(this);
+
+      addChat = (function(_this) {
+        return function(chat) {
+          var parsed, nodearr;
+          parsed = parser.parseFromString(chat.msg, "text/html"); 
+          nodearr = Array.prototype.slice.call(parsed.body.childNodes);
+          nodearr.forEach(function(d) {
+            if(d.nodeName === "IMG") {
+              addWord("("+d.alt+")", chat.ts);
+            } else if (d.nodeName === "#text") {
+              (d.data.trim().split(/[ ]+/)).forEach(function(w) {
+                addWord(w, chat.ts);
+              });
+            } else {
+              console.error("unexpected nodeName", d.nodeName);
+            }
+          });
+        };
+      })(this);
+
+      setTimeoutToChat = (function (_this) {
+        return function(chat) {
+          setTimeout(function() {
+            addChat(chat);
+            refreshClouds();
+          }, +chat.ts/_this.speed);
+        };
+      })(this);
+
+      // operations
+      margin = {top: 30, right: 30, bottom: 30, left: 30};
+      width = parseInt(d3.select("#clouds-container").style("width"), 10) - margin.left - margin.right;
+      height = parseInt(d3.select("#clouds-container").style("height"), 10) - margin.top - margin.bottom;
+
+      svg = d3.select("#clouds-container").append("svg")
+        .attr("id", "clouds")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom);
+
+      g = svg.append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top+")");
+
+      words = [];
+      cloud = g.selectAll(".cloud")
+        .data(words, function (d) { return d.word });
+      parser = new DOMParser();
+
+      chats.forEach(function(d) {
+        setTimeoutToChat(d);
       });
     };
 
