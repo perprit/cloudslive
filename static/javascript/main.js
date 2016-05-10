@@ -4,15 +4,18 @@
   Main = (function() {
     // constructor
     function Main() {
+      // member variables
       this.reftime = 0;
       this.speed = 1;
       this.timeBin = 20000;
       this.freqMax = 80;
+
+      // file uploader
       $("#upload-file > input:file").change((function(_this) {
         return function() {
           var form_data, overlay, spinner;
           overlay = $("<div class='overlay'> </div>");
-          spinner = $("<div classs'spinner'> </div>");
+          spinner = $("<div class'spinner'> </div>");
           overlay.appendTo($("body"));
           spinner.appendTo($("body"));
           form_data = new FormData($("#upload-file")[0]);
@@ -44,14 +47,17 @@
           });
         };
       })(this));
+
+      // perfect scrollbars
+      $("#chats-container").perfectScrollbar();
+      $("#clouds-container").perfectScrollbar();
     };
 
     // member functions
+    
     Main.prototype.initialize = function (chats) {
       this.initializeChats(chats);
       //this.initializeClouds(chats);
-      $("#chats-container").perfectScrollbar();
-      $("#clouds-container").perfectScrollbar();
     };
 
     Main.prototype.initializeChats = function (chats) {

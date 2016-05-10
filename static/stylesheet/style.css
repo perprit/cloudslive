@@ -34,10 +34,10 @@ body {
 #chats-container {
 	position: relative;
 	background-color: #f2f2f2;
-	padding: 6px;
+	/*padding: 6px;*/
 	overflow: hidden;
 	overflow-y: scroll;
-	width: 440px;
+	width: 340px;
 	height: 87vh;
 	margin-top: 20px;
 }
@@ -47,16 +47,18 @@ body {
 	background-color: #f2f2f2;
 	overflow: hidden;
 	overflow-y: hidden;
-	width: 440px;
+	width: 340px;
 	height: 87vh;
 	margin-top: 20px;
 }
 
 .chat {
+  font-size: 12px;
 	line-height: 20px;
 	padding: 6px 20px;
 	margin: -3px 0px;
 	word-wrap: break-word;
+  list-style-position: unset;
 }
 
 .chat .time {
@@ -87,7 +89,7 @@ body {
 	background-color: #f2f2f2;
 	overflow: hidden;
 	overflow-y: scroll;
-	width: 440px;
+	width: 340px;
 	height: 87vh;
 	margin-top: 20px;
 }
