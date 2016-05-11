@@ -7,7 +7,8 @@
     function Main() {
       // member variables
       this.reftime = 0;
-      this.speed = 1;
+      this.speed = 3;
+			this.MAX_CHAT = 50;
 
       // file uploader
       $("#upload-file > input:file").change((function(_this) {
@@ -116,7 +117,8 @@
       })(this);
 
       // operations
-      chats.forEach(function(d) {
+      //chats.forEach(function(d) {
+			chats.slice(0, this.MAX_CHAT).forEach(function(d) {
         setTimeoutToChat(d);
       });
     };
@@ -124,42 +126,81 @@
     Main.prototype.initializeClouds = function(chats) {
       // declarations
       var margin, width, height, svg, g;
-      var words, cloud, parser;
+      var words, parser;
       var addWord, refreshClouds, addChat, setTimeoutToChat;
       
       // functions
       addWord = (function(_this) {
-        return function(word, ts) {
-          var found;
-          found = words.find(function(d) {
-            return d.word === word;
-          });
+        return function(word, src, type, ts) {
+          var found, wordIdx, i;
+          found = words.find(function(d) { return d.word === word; });
           if (typeof found === "undefined") {
-            words.push({"word": word, "ts": [ts]});
+            words.push({"word": word, "src": src, "type": type, "ts": [ts]});
           } else {
-            words[words.map(function(d) { return d.word; }).indexOf(word)]["ts"].push(ts);
+						wordIdx = words.map(function(d) { return d.word; }).indexOf(word);
+            words[wordIdx].ts.push(ts);
+						words.sort(function(a,b) { return a.ts.length < b.ts.length; }); 
           }
         };
       })(this);
 
       refreshClouds = (function(_this) {
         return function() {
-          var cloud, bbox;
-          cloud = g.selectAll(".cloud")
-            .data(words, function(d) { return d.word; });
+          var textCloud, imageCloud, allCloud, bbox;
+					// text-cloud
+          textCloud = g.selectAll(".text-cloud")
+            .data(words.filter(function(d) { return d.type === "text"; }), function(d) { return d.word; });
 
-          cloud.enter()
-            .append("text")
-            .attr("class", "cloud")
-            .attr("y", function(d) { return d.ts[0]/10; })
-            .text(function(d) { return d.word; });
+          textCloud.enter()
+						.append("text")
+            .attr("class", "text-cloud")
+						.attr("x", "0px")
+						.attr("y", function(d) { return d.ts[0]/30; })
+						.text(function(d) { return d.word; });
 
-          cloud
-            .style("font-size", function(d) { return 10 + d.ts.length * 3; });
-
-          cloud.data(words, function(d) { return d.word; })
-            .exit()
+          textCloud
+						.style("font-size", function(d) { return 10 + d.ts.length * 3; })
+          
+					textCloud.exit()
             .remove(); 
+
+					// image-cloud
+          imageCloud = g.selectAll(".image-cloud")
+            .data(words.filter(function(d) { return d.type === "image"; }), function(d) { return d.word; });
+
+					imageCloud.enter()
+						.append("image")
+						.attr("class", "image-cloud")
+						.attr("x", "0px")
+						.attr("y", function(d) { return d.ts[0]/30; })
+						.attr("xlink:href", function(d) { return d.src; });
+
+          imageCloud
+						.attr("width", function(d) { return 28 + d.ts.length * 3; })
+						.attr("height", function(d) { return 28 + d.ts.length * 3; });
+
+          imageCloud.exit()
+            .remove(); 
+
+					// set layout of all clouds
+					allCloud = d3.selectAll(".text-cloud, .image-cloud");
+					allCloud.each(function(d, i) {
+						var prev;
+						var x1, y1, x2, y2;
+						prev = d3.select(this);
+						x1 = prev.attr("x");
+						y1 = prev.attr("y");
+						if(d.type === "text") {
+							x2 = x1 + prev[0][0].getBBox().width;
+							y2 = y1 + prev[0][0].getBBox().height;
+						} else if(d.type === "image") {
+							x2 = x1 + parseInt(prev.attr("width"));
+							y2 = y1 + parseInt(prev.attr("height"));
+						} else {
+							console.error("allCloud.each", "unexpected data type: " + d.type);
+						}
+						// TODO
+					});
 
           bbox = d3.select("#clouds")[0][0].getBBox();
           svg.attr("height", bbox.y + bbox.height);
@@ -174,13 +215,13 @@
           nodearr = Array.prototype.slice.call(parsed.body.childNodes);
           nodearr.forEach(function(d) {
             if(d.nodeName === "IMG") {
-              addWord("("+d.alt+")", chat.ts);
+              addWord("("+d.alt+")", d.src.substring(0, d.src.lastIndexOf("/"))+"/4.0", "image", chat.ts);
             } else if (d.nodeName === "#text") {
               (d.data.trim().split(/[ ]+/)).forEach(function(w) {
-                addWord(w, chat.ts);
+                addWord(w, w, "text", chat.ts);
               });
             } else {
-              console.error("unexpected nodeName", d.nodeName);
+              console.error("addChat", "unexpected nodeName: " + d.nodeName);
             }
           });
         };
@@ -196,7 +237,7 @@
       })(this);
 
       // operations
-      margin = {top: 30, right: 30, bottom: 30, left: 30};
+      margin = {top: 30, right: 10, bottom: 30, left: 10};
       width = parseInt(d3.select("#clouds-container").style("width"), 10) - margin.left - margin.right;
       height = parseInt(d3.select("#clouds-container").style("height"), 10) - margin.top - margin.bottom;
 
@@ -209,11 +250,10 @@
         .attr("transform", "translate(" + margin.left + "," + margin.top+")");
 
       words = [];
-      cloud = g.selectAll(".cloud")
-        .data(words, function (d) { return d.word });
       parser = new DOMParser();
 
-      chats.forEach(function(d) {
+      //chats.forEach(function(d) {
+			chats.slice(0, this.MAX_CHAT).forEach(function(d) {
         setTimeoutToChat(d);
       });
     };
