@@ -42,15 +42,15 @@ body {
 	margin-top: 20px;
 }
 
-#histogram {
-	position: relative;
-	background-color: #f2f2f2;
-	overflow: hidden;
-	overflow-y: hidden;
-	width: 340px;
-	height: 87vh;
-	margin-top: 20px;
-}
+/*#histogram {*/
+	/*position: relative;*/
+	/*background-color: #f2f2f2;*/
+	/*overflow: hidden;*/
+	/*overflow-y: hidden;*/
+	/*width: 340px;*/
+	/*height: 87vh;*/
+	/*margin-top: 20px;*/
+/*}*/
 
 .chat {
   font-size: 12px;

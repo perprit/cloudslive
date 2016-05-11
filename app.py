@@ -4,7 +4,7 @@ from flask import Flask, request, redirect, url_for, render_template
 from werkzeug import secure_filename
 
 UPLOAD_FOLDER = "uploaded"
-ALLOWED_EXTENSIONS = set(['json'])
+ALLOWED_EXTENSIONS = set(['json', 'text'])
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER

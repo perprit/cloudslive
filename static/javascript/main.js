@@ -8,8 +8,6 @@
       // member variables
       this.reftime = 0;
       this.speed = 1;
-      this.timeBin = 20000;
-      this.freqMax = 80;
 
       // file uploader
       $("#upload-file > input:file").change((function(_this) {
@@ -57,7 +55,7 @@
     // member functions
     
     Main.prototype.initialize = function (chats) {
-      //this.initializeChats(chats);
+			this.initializeChats(chats);
       this.initializeClouds(chats);
     };
 
