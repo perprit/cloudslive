@@ -8,7 +8,8 @@
       // member variables
       this.reftime = 0;
       this.speed = 3;
-			this.MAX_CHAT = 50;
+      this.space = 8;
+			this.MAX_CHAT = 30;
 
       // file uploader
       $("#upload-file > input:file").change((function(_this) {
@@ -127,7 +128,7 @@
       // declarations
       var margin, width, height, svg, g;
       var words, parser;
-      var addWord, refreshClouds, addChat, setTimeoutToChat;
+      var addWord, refreshClouds, isCollided, addChat, setTimeoutToChat;
       
       // functions
       addWord = (function(_this) {
@@ -135,11 +136,12 @@
           var found, wordIdx, i;
           found = words.find(function(d) { return d.word === word; });
           if (typeof found === "undefined") {
-            words.push({"word": word, "src": src, "type": type, "ts": [ts]});
+            words.push({"word": word, "src": src, "type": type, "ts": [ts], "tsAvg": ts});
           } else {
 						wordIdx = words.map(function(d) { return d.word; }).indexOf(word);
             words[wordIdx].ts.push(ts);
-						words.sort(function(a,b) { return a.ts.length < b.ts.length; }); 
+            words[wordIdx].tsAvg = (words[wordIdx].tsAvg * words[wordIdx].ts.length + ts) / (words[wordIdx].ts.length + 1);
+            words.sort(function(a,b) { return a.ts.length < b.ts.length; }); 
           }
         };
       })(this);
@@ -151,16 +153,33 @@
           textCloud = g.selectAll(".text-cloud")
             .data(words.filter(function(d) { return d.type === "text"; }), function(d) { return d.word; });
 
+          textCloud.each(function(d, i) {
+            this.newly = false;
+          });
+
           textCloud.enter()
 						.append("text")
             .attr("class", "text-cloud")
-						.attr("x", "0px")
-						.attr("y", function(d) { return d.ts[0]/30; })
-						.text(function(d) { return d.word; });
+            .attr("font-family", "Helvetica")
+            .attr("x", "0px")
+            .attr("y", "13px")
+						.text(function(d) { return d.word; })
+            .each(function(d, i) { 
+              this.pos = {x: 0, y:0, w:0, h:0};
+              this.newly = true;
+            });
 
           textCloud
-						.style("font-size", function(d) { return 10 + d.ts.length * 3; })
-          
+            .attr("font-size", function(d) { return (10 + d.ts.length * 3)+"px"; })
+            .each(function(d, i) {
+              var sel;
+              sel = d3.select(this);
+              this.pos.x = parseInt(sel.attr("x"));
+              this.pos.y = parseInt(sel.attr("y"));
+              this.pos.w = parseInt(sel[0][0].getBBox().width);
+              this.pos.h = parseInt(sel[0][0].getBBox().height);
+            });
+
 					textCloud.exit()
             .remove(); 
 
@@ -168,43 +187,111 @@
           imageCloud = g.selectAll(".image-cloud")
             .data(words.filter(function(d) { return d.type === "image"; }), function(d) { return d.word; });
 
+          imageCloud.each(function(d, i) {
+            this.newly = false;
+          });
+
 					imageCloud.enter()
 						.append("image")
 						.attr("class", "image-cloud")
-						.attr("x", "0px")
-						.attr("y", function(d) { return d.ts[0]/30; })
-						.attr("xlink:href", function(d) { return d.src; });
+            .attr("x", "0px")
+            .attr("y", "0px")
+						.attr("xlink:href", function(d) { return d.src; })
+            .each(function(d, i) { 
+              this.pos = {x: 0, y:0, w:0, h:0};
+              this.newly = true;
+            });
 
           imageCloud
-						.attr("width", function(d) { return 28 + d.ts.length * 3; })
-						.attr("height", function(d) { return 28 + d.ts.length * 3; });
+            .attr("width", function(d) { return (28 + d.ts.length * 3)+"px"; })
+            .attr("height", function(d) { return (28 + d.ts.length * 3)+"px"; })
+            .each(function(d, i) {
+              var sel;
+              sel = d3.select(this);
+              this.pos.x = parseInt(sel.attr("x"));
+              this.pos.y = parseInt(sel.attr("y"));
+              this.pos.w = parseInt(sel.attr("width"));
+              this.pos.h = parseInt(sel.attr("height"));
+            });
 
           imageCloud.exit()
             .remove(); 
 
 					// set layout of all clouds
-					allCloud = d3.selectAll(".text-cloud, .image-cloud");
-					allCloud.each(function(d, i) {
-						var prev;
-						var x1, y1, x2, y2;
-						prev = d3.select(this);
-						x1 = prev.attr("x");
-						y1 = prev.attr("y");
-						if(d.type === "text") {
-							x2 = x1 + prev[0][0].getBBox().width;
-							y2 = y1 + prev[0][0].getBBox().height;
-						} else if(d.type === "image") {
-							x2 = x1 + parseInt(prev.attr("width"));
-							y2 = y1 + parseInt(prev.attr("height"));
-						} else {
-							console.error("allCloud.each", "unexpected data type: " + d.type);
-						}
-						// TODO
-					});
+					allCloud = g.selectAll(".text-cloud, .image-cloud")
+            .data(words, function(d) { return d.word; });
+
+          allCloud.filter(function(d) { return this.newly; }).each(function(ad, ai) {
+            var a, as, again;
+            a = this;
+            as = d3.select(this);
+            // TODO
+            do {
+              again = false;
+              allCloud.filter(function(d) { return !this.newly; }).each(function(bd, bi) {
+                var b, bs;
+                b = this;
+                bs = d3.select(this);
+                if(isCollided(a.pos, b.pos)) {
+                  if(ad.tsAvg > bd.tsAvg + 500) {
+                    a.pos.y += 5;
+                  } else if(a.pos.x + a.pos.w > width) {
+                    a.pos.x = 0;
+                    a.pos.y += 5;
+                  } else {
+                    a.pos.x += 3;
+                  }
+                  again = true;
+                }
+              });
+            } while (again);
+            as.attr("x", a.pos.x);
+            as.attr("y", a.pos.y);
+            this.newly = false;
+          });
+          
+          //var again = false;
+          //do {
+            //allCloud.each(function(ad, ai) {
+              //var a, as;
+              //a = this;
+              //as = d3.select(this);
+              //allCloud.filter(function(d, i) { return ai < i; }).each(function(bd, bi) {
+              ////allCloud.each(function(bd, bi) {
+                //var b, bs;
+                //b = this;
+                //bs = d3.select(this);
+                //if (a === b) return;
+                //else if (isCollided(a.pos, b.pos)) {
+                  //if(bd.tsAvg > ad.tsAvg + 500) {
+                    //b.pos.y += 10;
+                  //} 
+                  //else if(b.pos.x + b.pos.w > width) {
+                    //b.pos.x = 0;
+                    //b.pos.y += 10;
+                  //}
+                  //else {
+                    //b.pos.x += 4;
+                  //}
+                  //again = true;
+                //} else {
+                  //again = false;
+                //}
+                //bs.attr("x", b.pos.x+"px");
+                //bs.attr("y", b.pos.y+"px");
+              //});
+            //});
+          //} while(again);
 
           bbox = d3.select("#clouds")[0][0].getBBox();
           svg.attr("height", bbox.y + bbox.height);
           $("#clouds-container").stop().animate({scrollTop: $("#clouds").height()}, 100)
+        };
+      })(this);
+
+      isCollided = (function(_this) {
+        return function(a, b) {
+          return a.x < b.x + b.w && a.x + a.w + _this.space > b.x && a.y < b.y + b.h && a.h + _this.space + a.y > b.y;
         };
       })(this);
 
@@ -237,7 +324,7 @@
       })(this);
 
       // operations
-      margin = {top: 30, right: 10, bottom: 30, left: 10};
+      margin = {top: 10, right: 10, bottom: 10, left: 10};
       width = parseInt(d3.select("#clouds-container").style("width"), 10) - margin.left - margin.right;
       height = parseInt(d3.select("#clouds-container").style("height"), 10) - margin.top - margin.bottom;
 
