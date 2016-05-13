@@ -7,9 +7,9 @@
     function Main() {
       // member variables
       this.reftime = 0;
-      this.speed = 3;
-      this.space = 8;
-			this.MAX_CHAT = 30;
+      this.speed = 2;
+      this.space = 6;
+			this.MAX_CHAT = 10;
 
       // file uploader
       $("#upload-file > input:file").change((function(_this) {
@@ -141,43 +141,45 @@
 						wordIdx = words.map(function(d) { return d.word; }).indexOf(word);
             words[wordIdx].ts.push(ts);
             words[wordIdx].tsAvg = (words[wordIdx].tsAvg * words[wordIdx].ts.length + ts) / (words[wordIdx].ts.length + 1);
-            words.sort(function(a,b) { return a.ts.length < b.ts.length; }); 
+            words.sort(function(a,b) { return a.ts.tsAvg < b.ts.tsAvg; }); 
           }
         };
       })(this);
 
       refreshClouds = (function(_this) {
-        return function() {
+        return function(newWords) {
           var textCloud, imageCloud, allCloud, bbox;
 					// text-cloud
           textCloud = g.selectAll(".text-cloud")
             .data(words.filter(function(d) { return d.type === "text"; }), function(d) { return d.word; });
 
           textCloud.each(function(d, i) {
-            this.newly = false;
+            this.entered = false;
           });
 
           textCloud.enter()
 						.append("text")
             .attr("class", "text-cloud")
+            .attr("dominant-baseline", "text-before-edge")
             .attr("font-family", "Helvetica")
             .attr("x", "0px")
             .attr("y", "13px")
 						.text(function(d) { return d.word; })
             .each(function(d, i) { 
-              this.pos = {x: 0, y:0, w:0, h:0};
-              this.newly = true;
+              this.pos = {x: 0, y:13, w:0, h:0};
+              this.entered = true;
             });
 
           textCloud
             .attr("font-size", function(d) { return (10 + d.ts.length * 3)+"px"; })
+            //.attr("y", function(d) { return (13 + d.tsAvg/20)+"px"; })
             .each(function(d, i) {
               var sel;
               sel = d3.select(this);
-              this.pos.x = parseInt(sel.attr("x"));
-              this.pos.y = parseInt(sel.attr("y"));
               this.pos.w = parseInt(sel[0][0].getBBox().width);
               this.pos.h = parseInt(sel[0][0].getBBox().height);
+              this.pos.x = parseInt(sel.attr("x"));
+              this.pos.y = parseInt(sel.attr("y"));
             });
 
 					textCloud.exit()
@@ -188,7 +190,7 @@
             .data(words.filter(function(d) { return d.type === "image"; }), function(d) { return d.word; });
 
           imageCloud.each(function(d, i) {
-            this.newly = false;
+            this.entered = false;
           });
 
 					imageCloud.enter()
@@ -199,47 +201,56 @@
 						.attr("xlink:href", function(d) { return d.src; })
             .each(function(d, i) { 
               this.pos = {x: 0, y:0, w:0, h:0};
-              this.newly = true;
+              this.entered = true;
             });
 
           imageCloud
-            .attr("width", function(d) { return (28 + d.ts.length * 3)+"px"; })
-            .attr("height", function(d) { return (28 + d.ts.length * 3)+"px"; })
+            .attr("width", function(d) { return (25 + d.ts.length * 3)+"px"; })
+            .attr("height", function(d) { return (25 + d.ts.length * 3)+"px"; })
+            //.attr("y", function(d) { return (d.tsAvg/20)+"px"; })
             .each(function(d, i) {
               var sel;
               sel = d3.select(this);
-              this.pos.x = parseInt(sel.attr("x"));
-              this.pos.y = parseInt(sel.attr("y"));
               this.pos.w = parseInt(sel.attr("width"));
               this.pos.h = parseInt(sel.attr("height"));
+              this.pos.x = parseInt(sel.attr("x"));
+              this.pos.y = parseInt(sel.attr("y"));
             });
 
           imageCloud.exit()
             .remove(); 
 
-					// set layout of all clouds
+					// all clouds
 					allCloud = g.selectAll(".text-cloud, .image-cloud")
             .data(words, function(d) { return d.word; });
 
-          allCloud.filter(function(d) { return this.newly; }).each(function(ad, ai) {
+          // set layout of changed words
+          allCloud.filter(function(d) { return !this.entered && newWords.indexOf(d.word) !== -1; }).each(function(ad, ai) {
+            // TODO
+          });
+
+          // set layout of newly entered words
+          allCloud.filter(function(d) { return this.entered; }).each(function(ad, ai) {
             var a, as, again;
             a = this;
             as = d3.select(this);
-            // TODO
             do {
               again = false;
-              allCloud.filter(function(d) { return !this.newly; }).each(function(bd, bi) {
+              allCloud.filter(function(d) { return !this.entered; }).each(function(bd, bi) {
                 var b, bs;
                 b = this;
                 bs = d3.select(this);
                 if(isCollided(a.pos, b.pos)) {
-                  if(ad.tsAvg > bd.tsAvg + 500) {
-                    a.pos.y += 5;
-                  } else if(a.pos.x + a.pos.w > width) {
+                  if(a.pos.x + a.pos.w > width) {
                     a.pos.x = 0;
-                    a.pos.y += 5;
-                  } else {
-                    a.pos.x += 3;
+                    a.pos.y += (b.pos.y + b.pos.h) - a.pos.y + _this.space;   // assume that a entered after b
+                  } 
+                  else if(a.pos.y >= b.pos.y && a.pos.y + a.pos.h <= b.pos.y + b.pos.h) {
+                    a.pos.x += (b.pos.x + b.pos.w) - a.pos.x + _this.space;;
+                  }
+                  else {
+                    a.pos.x = 0;
+                    a.pos.y += (b.pos.y + b.pos.h) - a.pos.y + _this.space;   // assume that a entered after b
                   }
                   again = true;
                 }
@@ -247,41 +258,8 @@
             } while (again);
             as.attr("x", a.pos.x);
             as.attr("y", a.pos.y);
-            this.newly = false;
+            this.entered = false;
           });
-          
-          //var again = false;
-          //do {
-            //allCloud.each(function(ad, ai) {
-              //var a, as;
-              //a = this;
-              //as = d3.select(this);
-              //allCloud.filter(function(d, i) { return ai < i; }).each(function(bd, bi) {
-              ////allCloud.each(function(bd, bi) {
-                //var b, bs;
-                //b = this;
-                //bs = d3.select(this);
-                //if (a === b) return;
-                //else if (isCollided(a.pos, b.pos)) {
-                  //if(bd.tsAvg > ad.tsAvg + 500) {
-                    //b.pos.y += 10;
-                  //} 
-                  //else if(b.pos.x + b.pos.w > width) {
-                    //b.pos.x = 0;
-                    //b.pos.y += 10;
-                  //}
-                  //else {
-                    //b.pos.x += 4;
-                  //}
-                  //again = true;
-                //} else {
-                  //again = false;
-                //}
-                //bs.attr("x", b.pos.x+"px");
-                //bs.attr("y", b.pos.y+"px");
-              //});
-            //});
-          //} while(again);
 
           bbox = d3.select("#clouds")[0][0].getBBox();
           svg.attr("height", bbox.y + bbox.height);
@@ -291,34 +269,40 @@
 
       isCollided = (function(_this) {
         return function(a, b) {
-          return a.x < b.x + b.w && a.x + a.w + _this.space > b.x && a.y < b.y + b.h && a.h + _this.space + a.y > b.y;
+          return a.x < b.x + b.w + _this.space && a.x + a.w + _this.space > b.x && a.y < b.y + b.h + _this.space && a.h + _this.space + a.y > b.y;
         };
       })(this);
 
       addChat = (function(_this) {
         return function(chat) {
-          var parsed, nodearr;
+          var parsed, nodearr, newWords;
+          newWords = [];
           parsed = parser.parseFromString(chat.msg, "text/html"); 
           nodearr = Array.prototype.slice.call(parsed.body.childNodes);
           nodearr.forEach(function(d) {
             if(d.nodeName === "IMG") {
-              addWord("("+d.alt+")", d.src.substring(0, d.src.lastIndexOf("/"))+"/4.0", "image", chat.ts);
+              var word = "("+d.alt+")";
+              newWords.push(word);
+              addWord(word, d.src.substring(0, d.src.lastIndexOf("/"))+"/4.0", "image", chat.ts);
             } else if (d.nodeName === "#text") {
-              (d.data.trim().split(/[ ]+/)).forEach(function(w) {
-                addWord(w, w, "text", chat.ts);
+              (d.data.trim().split(/[ ]+/)).forEach(function(word) {
+                newWords.push(word);
+                addWord(word, word, "text", chat.ts);
               });
             } else {
               console.error("addChat", "unexpected nodeName: " + d.nodeName);
             }
           });
+          return newWords;
         };
       })(this);
 
       setTimeoutToChat = (function (_this) {
         return function(chat) {
           setTimeout(function() {
-            addChat(chat);
-            refreshClouds();
+            var newWords;
+            newWords = addChat(chat);
+            refreshClouds(newWords);
           }, +chat.ts/_this.speed);
         };
       })(this);
