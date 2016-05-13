@@ -7,9 +7,9 @@
     function Main() {
       // member variables
       this.reftime = 0;
-      this.speed = 2;
-      this.space = 6;
-			this.MAX_CHAT = 10;
+      this.speed = 3;
+      this.space = 4;
+			this.MAX_CHAT = 200;
 
       // file uploader
       $("#upload-file > input:file").change((function(_this) {
@@ -132,11 +132,11 @@
       
       // functions
       addWord = (function(_this) {
-        return function(word, src, type, ts) {
+        return function(word, src, type, userid, ts) {
           var found, wordIdx, i;
           found = words.find(function(d) { return d.word === word; });
           if (typeof found === "undefined") {
-            words.push({"word": word, "src": src, "type": type, "ts": [ts], "tsAvg": ts});
+            words.push({"word": word, "src": src, "type": type, "userid": userid, "ts": [ts], "tsAvg": ts});
           } else {
 						wordIdx = words.map(function(d) { return d.word; }).indexOf(word);
             words[wordIdx].ts.push(ts);
@@ -162,6 +162,11 @@
             .attr("class", "text-cloud")
             .attr("dominant-baseline", "text-before-edge")
             .attr("font-family", "Helvetica")
+						.attr("fill", function(d) {
+							var hash;
+							hash = d.userid.hashCode();
+							return "#"+((hash & 0xFF0000)>>16).toString(16)+((hash & 0x00FF00)>>8).toString(16)+(hash & 0x0000FF).toString(16);
+						})
             .attr("x", "0px")
             .attr("y", "13px")
 						.text(function(d) { return d.word; })
@@ -171,8 +176,10 @@
             });
 
           textCloud
-            .attr("font-size", function(d) { return (10 + d.ts.length * 3)+"px"; })
-            //.attr("y", function(d) { return (13 + d.tsAvg/20)+"px"; })
+						.transition()
+						.delay(150)
+						.attr("font-size", function(d) { return (10 + d.ts.length * 2)+"px"; })
+						//.attr("font-size", function(d) { return (13)+"px"; })
             .each(function(d, i) {
               var sel;
               sel = d3.select(this);
@@ -198,6 +205,8 @@
 						.attr("class", "image-cloud")
             .attr("x", "0px")
             .attr("y", "0px")
+						.attr("width", "28px")
+						.attr("height", "28px")
 						.attr("xlink:href", function(d) { return d.src; })
             .each(function(d, i) { 
               this.pos = {x: 0, y:0, w:0, h:0};
@@ -205,10 +214,13 @@
             });
 
           imageCloud
-            .attr("width", function(d) { return (25 + d.ts.length * 3)+"px"; })
-            .attr("height", function(d) { return (25 + d.ts.length * 3)+"px"; })
-            //.attr("y", function(d) { return (d.tsAvg/20)+"px"; })
-            .each(function(d, i) {
+						//.attr("width", function(d) { return (28)+"px"; })
+						//.attr("height", function(d) { return (28)+"px"; })
+						.transition()
+						.delay(150)
+						.attr("width", function(d) { return (25 + d.ts.length * 4)+"px"; })
+						.attr("height", function(d) { return (25 + d.ts.length * 4)+"px"; })
+						.each(function(d, i) {
               var sel;
               sel = d3.select(this);
               this.pos.w = parseInt(sel.attr("width"));
@@ -226,7 +238,17 @@
 
           // set layout of changed words
           allCloud.filter(function(d) { return !this.entered && newWords.indexOf(d.word) !== -1; }).each(function(ad, ai) {
-            // TODO
+						var a, as, again;
+						a = this;
+						as = d3.select(this);
+						allCloud.filter(function(d) { return !this.entered && d.word != ad.word && isCollided(a.pos, this.pos); }).each(function(bd, bi) {
+							var b, bs;
+							b = this;
+							bs = d3.select(this);
+							// a를 기준으로 b들의 위치를 옮겨주거나 크기를 줄여줌.
+							// cascade 하면 performance가 심각하게 나빠질 듯. 어떻게 주변 rect를 인식하고 크기를 줄여줄지? 가중치를 어떻게 부여해야 할지?
+							// TODO
+						});
           });
 
           // set layout of newly entered words
@@ -241,16 +263,16 @@
                 b = this;
                 bs = d3.select(this);
                 if(isCollided(a.pos, b.pos)) {
-                  if(a.pos.x + a.pos.w > width) {
+                  if(a.pos.w + b.pos.x + b.pos.w > width) {
                     a.pos.x = 0;
                     a.pos.y += (b.pos.y + b.pos.h) - a.pos.y + _this.space;   // assume that a entered after b
                   } 
-                  else if(a.pos.y >= b.pos.y && a.pos.y + a.pos.h <= b.pos.y + b.pos.h) {
-                    a.pos.x += (b.pos.x + b.pos.w) - a.pos.x + _this.space;;
-                  }
-                  else {
+									else if(ad.tsAvg >= bd.tsAvg + 500) {
                     a.pos.x = 0;
                     a.pos.y += (b.pos.y + b.pos.h) - a.pos.y + _this.space;   // assume that a entered after b
+                  }
+                  else {
+                    a.pos.x += (b.pos.x + b.pos.w) - a.pos.x + _this.space;;
                   }
                   again = true;
                 }
@@ -283,12 +305,14 @@
             if(d.nodeName === "IMG") {
               var word = "("+d.alt+")";
               newWords.push(word);
-              addWord(word, d.src.substring(0, d.src.lastIndexOf("/"))+"/4.0", "image", chat.ts);
+              addWord(word, d.src.substring(0, d.src.lastIndexOf("/"))+"/4.0", "image", chat.id, chat.ts);
             } else if (d.nodeName === "#text") {
-              (d.data.trim().split(/[ ]+/)).forEach(function(word) {
-                newWords.push(word);
-                addWord(word, word, "text", chat.ts);
-              });
+							//newWords.push(d.data);
+							//addWord(d.data, d.data, "text", chat.id, chat.ts);
+							(d.data.trim().split(/[ ]+/)).forEach(function(word) {
+								newWords.push(word);
+								addWord(word, word, "text", chat.id, chat.ts);
+							});
             } else {
               console.error("addChat", "unexpected nodeName: " + d.nodeName);
             }
@@ -300,7 +324,12 @@
       setTimeoutToChat = (function (_this) {
         return function(chat) {
           setTimeout(function() {
-            var newWords;
+            var newWords, currTime, i;
+						currTime = chat.ts;
+						for(i=0; i<words.length; i++) {
+							words[i].ts = words[i].ts.filter(function(time) { return currTime - 5000 < time; });
+							// remove if ts.length === 0
+						}
             newWords = addChat(chat);
             refreshClouds(newWords);
           }, +chat.ts/_this.speed);
